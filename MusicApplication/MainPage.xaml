@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MusicApplication.MainPage"
+             Title="Music Search">
+    <StackLayout Padding="20">
+        <Label Text="Enter a keyword to search for music:"
+               FontSize="Medium"
+               HorizontalOptions="Center" />
+
+        <Entry x:Name="SearchEntry"
+               Placeholder="Type your keyword here"
+               HorizontalOptions="FillAndExpand" />
+
+        <Button Text="Search"
+                Clicked="OnSearchClicked"
+                HorizontalOptions="Center" />
+
+        <Label x:Name="ResultLabel"
+               FontSize="Medium"
+               HorizontalOptions="Center" />
+
+        <CollectionView x:Name="ResultsCollectionView"
+                        SelectionChanged="OnTrackSelected">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Label Text="{Binding Title}" />
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Label x:Name="MetadataLabel"
+               FontSize="Medium"
+               HorizontalOptions="Center"
+               LineBreakMode="WordWrap"
+               Margin="0,10,0,0" />
+
+        <StackLayout Orientation="Horizontal"
+                     HorizontalOptions="Center">
+            <Button Text="Play"
+                    Clicked="OnPlayClicked" />
+            <Button Text="Pause"
+                    Clicked="OnPauseClicked" />
+            <Button Text="Stop"
+                    Clicked="OnStopClicked" />
+        </StackLayout>
+    </StackLayout>
+</ContentPage>
