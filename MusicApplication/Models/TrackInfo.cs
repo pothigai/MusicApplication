@@ -9,5 +9,6 @@
         public DateOnly Date { get; set; }
         public string UniqueId { get; set; }
         public string Thumbnail { get; set; }
+        public string FilePath { get; set; }
     }
 }
