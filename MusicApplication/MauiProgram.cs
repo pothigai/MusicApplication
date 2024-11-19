@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using MediaManager;
 
 namespace MusicApplication
 {
@@ -15,8 +16,10 @@ namespace MusicApplication
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
 
+            CrossMediaManager.Current.Init();
+
 #if DEBUG
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
 
             return builder.Build();

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
 using MusicApplication.Models;
-using System.Threading.Tasks;
+using MusicApplication.Services;
+using MediaManager;
 
 namespace MusicApplication
 {
@@ -10,14 +12,16 @@ namespace MusicApplication
     {
         private readonly UserSearch _userSearch;
         private readonly ObservableCollection<TrackInfo> _searchResults;
-        private readonly Player _player;
+        private TrackInfo _selectedTrack;
+        private readonly Player _player; 
 
         public MainPage()
         {
             InitializeComponent();
             _userSearch = new UserSearch();
-            _player = new Player();
             _searchResults = new ObservableCollection<TrackInfo>();
+            _player = new Player();
+
             ResultsCollectionView.ItemsSource = _searchResults;
         }
 
@@ -29,19 +33,14 @@ namespace MusicApplication
                 ResultLabel.Text = "Searching...";
                 _searchResults.Clear();
 
-                var resultsUrl = await _userSearch.DisplayResults(keyword);
+                var results = await _userSearch.DisplayResults(keyword);
 
-                if (resultsUrl != null)
+                if (results != null && results.Count > 0)
                 {
-                    _searchResults.Add(new TrackInfo
+                    foreach (var result in results)
                     {
-                        Title = "Sample Track",
-                        Artist = "Sample Artist",
-                        Duration = TimeSpan.FromMinutes(3),
-                        Url = resultsUrl,
-                        UniqueId = Guid.NewGuid().ToString()
-                    });
-
+                        _searchResults.Add(result);
+                    }
                     ResultLabel.Text = "Select a track from the list";
                 }
                 else
@@ -51,33 +50,39 @@ namespace MusicApplication
             }
         }
 
-        private void OnTrackSelected(object sender, SelectionChangedEventArgs e)
+        private async void OnTrackSelected(object sender, SelectionChangedEventArgs e)
         {
             if (e.CurrentSelection.Count > 0)
             {
-                var selectedTrack = (TrackInfo)e.CurrentSelection[0];
-                MetadataLabel.Text = $"Title: {selectedTrack.Title}\nArtist: {selectedTrack.Artist}\nDuration: {selectedTrack.Duration}";
+                _selectedTrack = (TrackInfo)e.CurrentSelection[0];
+                MetadataLabel.Text = $"Title: {_selectedTrack.Title}\nArtist: {_selectedTrack.Artist}\nDuration: {_selectedTrack.Duration}";
 
-                _player.Play(selectedTrack);
+                
+                var ytDlpService = new YtDlpService();
+                var streamUrl = await ytDlpService.GetAudioStreamUrlAsync(_selectedTrack.Url);
+
+                if (!string.IsNullOrEmpty(streamUrl))
+                {
+                    
+                    await _player.PlayAsync(_selectedTrack); 
+                }
+                else
+                {
+                    await DisplayAlert("Error", "Unable to stream this track", "OK");
+                }
             }
         }
 
-        private void OnPlayClicked(object sender, EventArgs e)
+        private async void OnPlayClicked(object sender, EventArgs e)
         {
-            if (_player.CurrentStatus == null)
+            if (_selectedTrack == null)
             {
-                DisplayAlert("Error", "No track selected to play", "OK");
+                await DisplayAlert("Error", "No track selected to play", "OK");
                 return;
             }
 
-            if (_player.CurrentStatus.AudioStatus == PlayerStatus.Status.paused)
-            {
-                _player.Resume();
-            }
-            else
-            {
-                _player.Play(_player.CurrentStatus.Track);
-            }
+           
+            await _player.PlayAsync(_selectedTrack);
         }
 
         private void OnPauseClicked(object sender, EventArgs e)
@@ -87,7 +92,7 @@ namespace MusicApplication
 
         private void OnStopClicked(object sender, EventArgs e)
         {
-            _player.Stop();
+            _player.Stop(); 
             MetadataLabel.Text = "";
         }
     }

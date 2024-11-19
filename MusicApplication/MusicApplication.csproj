@@ -63,6 +63,7 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
 		<PackageReference Include="NAudio" Version="2.2.1" />
 		<PackageReference Include="Plugin.Maui.Audio" Version="3.0.1" />
+		<PackageReference Include="Plugin.MediaManager.Forms" Version="1.2.2" />
 	</ItemGroup>
 
 </Project>

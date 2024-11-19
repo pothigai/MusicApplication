@@ -21,10 +21,14 @@
                HorizontalOptions="Center" />
 
         <CollectionView x:Name="ResultsCollectionView"
+                        SelectionMode="Single"
                         SelectionChanged="OnTrackSelected">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Label Text="{Binding Title}" />
+                    <StackLayout Padding="10">
+                        <Label Text="{Binding Title}" FontSize="Medium" />
+                        <Label Text="{Binding Artist}" FontSize="Small" />
+                    </StackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>

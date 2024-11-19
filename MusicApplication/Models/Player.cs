@@ -1,43 +1,39 @@
-﻿using MusicApplication.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using MediaManager;
+using MusicApplication.Models;
+using MusicApplication.Services;
 using System.Threading.Tasks;
 
 namespace MusicApplication
 {
     public class Player
     {
-        public PlayerStatus CurrentStatus { get; set; }
+        private readonly YtDlpService _ytDlpService = new YtDlpService();
+        private TrackInfo _currentTrack;
 
-        public void Play(TrackInfo track)
+        public async Task PlayAsync(TrackInfo track)
         {
-            CurrentStatus = new PlayerStatus(track, PlayerStatus.Status.playing);
+            if (track == null) return;
+
+            _currentTrack = track;
+
+            string audioStreamUrl = await _ytDlpService.GetAudioStreamUrlAsync(track.Url);
+
+            if (string.IsNullOrEmpty(audioStreamUrl))
+            {
+                Console.WriteLine("Failed to fetch audio stream URL.");
+                return;
+            }
+            await CrossMediaManager.Current.Play(audioStreamUrl);
         }
 
         public void Pause()
         {
-            if (CurrentStatus != null && CurrentStatus.AudioStatus == PlayerStatus.Status.playing)
-            {
-                CurrentStatus.AudioStatus = PlayerStatus.Status.paused;
-            }
-        }
-
-        public void Resume()
-        {
-            if (CurrentStatus != null && CurrentStatus.AudioStatus == PlayerStatus.Status.paused)
-            {
-                CurrentStatus.AudioStatus = PlayerStatus.Status.playing;
-            }
+            CrossMediaManager.Current.Pause();
         }
 
         public void Stop()
         {
-            if (CurrentStatus != null)
-            {
-                CurrentStatus.AudioStatus = PlayerStatus.Status.stopped;
-            }
+            CrossMediaManager.Current.Stop();
         }
     }
 }
