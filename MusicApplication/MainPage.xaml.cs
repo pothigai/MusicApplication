@@ -3,8 +3,9 @@ using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
 using MusicApplication.Models;
-using MusicApplication.Services;
 using MediaManager;
+using MusicApplication.Services;
+
 
 namespace MusicApplication
 {
@@ -13,15 +14,12 @@ namespace MusicApplication
         private readonly UserSearch _userSearch;
         private readonly ObservableCollection<TrackInfo> _searchResults;
         private TrackInfo _selectedTrack;
-        private readonly Player _player; 
 
         public MainPage()
         {
             InitializeComponent();
             _userSearch = new UserSearch();
             _searchResults = new ObservableCollection<TrackInfo>();
-            _player = new Player();
-
             ResultsCollectionView.ItemsSource = _searchResults;
         }
 
@@ -33,19 +31,26 @@ namespace MusicApplication
                 ResultLabel.Text = "Searching...";
                 _searchResults.Clear();
 
-                var results = await _userSearch.DisplayResults(keyword);
+                try
+                {
+                    var results = await _userSearch.DisplayResults(keyword);
 
-                if (results != null && results.Count > 0)
-                {
-                    foreach (var result in results)
+                    if (results != null && results.Count > 0)
                     {
-                        _searchResults.Add(result);
+                        foreach (var result in results)
+                        {
+                            _searchResults.Add(result);
+                        }
+                        ResultLabel.Text = "Select a track from the list";
                     }
-                    ResultLabel.Text = "Select a track from the list";
+                    else
+                    {
+                        ResultLabel.Text = "No results found";
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    ResultLabel.Text = "No results found";
+                    await DisplayAlert("Error", $"An error occurred while searching: {ex.Message}", "OK");
                 }
             }
         }
@@ -57,18 +62,25 @@ namespace MusicApplication
                 _selectedTrack = (TrackInfo)e.CurrentSelection[0];
                 MetadataLabel.Text = $"Title: {_selectedTrack.Title}\nArtist: {_selectedTrack.Artist}\nDuration: {_selectedTrack.Duration}";
 
-                
-                var ytDlpService = new YtDlpService();
-                var streamUrl = await ytDlpService.GetAudioStreamUrlAsync(_selectedTrack.Url);
+                try
+                {
+                    var ytdlp = new YtDlpService();
+                    var streamUrl = await ytdlp.GetAudioStreamUrlAsync(_selectedTrack.Url);
 
-                if (!string.IsNullOrEmpty(streamUrl))
-                {
-                    
-                    await _player.PlayAsync(_selectedTrack); 
+                    if (!string.IsNullOrEmpty(streamUrl))
+                    {
+                        Console.WriteLine($"Stream URL: {streamUrl}");
+
+                        await CrossMediaManager.Current.Play(streamUrl);
+                    }
+                    else
+                    {
+                        await DisplayAlert("Error", "Unable to extract a valid stream URL from yt-dlp.", "OK");
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    await DisplayAlert("Error", "Unable to stream this track", "OK");
+                    await DisplayAlert("Error", $"An error occurred while streaming the track: {ex.Message}", "OK");
                 }
             }
         }
@@ -81,19 +93,39 @@ namespace MusicApplication
                 return;
             }
 
-           
-            await _player.PlayAsync(_selectedTrack);
+            try
+            {
+                await CrossMediaManager.Current.Play();
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Error", $"An error occurred while playing the track: {ex.Message}", "OK");
+            }
         }
 
         private void OnPauseClicked(object sender, EventArgs e)
         {
-            _player.Pause();
+            try
+            {
+                CrossMediaManager.Current.Pause();
+            }
+            catch (Exception ex)
+            {
+                DisplayAlert("Error", $"An error occurred while pausing the track: {ex.Message}", "OK");
+            }
         }
 
         private void OnStopClicked(object sender, EventArgs e)
         {
-            _player.Stop(); 
-            MetadataLabel.Text = "";
+            try
+            {
+                CrossMediaManager.Current.Stop();
+                MetadataLabel.Text = "";
+            }
+            catch (Exception ex)
+            {
+                DisplayAlert("Error", $"An error occurred while stopping the track: {ex.Message}", "OK");
+            }
         }
     }
 }
