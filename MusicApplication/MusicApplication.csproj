@@ -57,6 +57,17 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <MauiAsset Remove="Resources\Raw\AboutAssets.txt" />
+	  <MauiAsset Remove="Resources\Raw\yt-dlp_aarch64" />
+	  <MauiAsset Remove="Resources\Raw\yt_dlp" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="Resources\Raw\AboutAssets.txt" />
+	  <EmbeddedResource Include="Resources\Raw\yt_dlp" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Google.Apis.YouTube.v3" Version="1.68.0.3582" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
@@ -64,6 +75,7 @@
 		<PackageReference Include="NAudio" Version="2.2.1" />
 		<PackageReference Include="Plugin.Maui.Audio" Version="3.0.1" />
 		<PackageReference Include="Plugin.MediaManager.Forms" Version="1.2.2" />
+		<PackageReference Include="YoutubeDLSharp" Version="1.1.1" />
 	</ItemGroup>
 
 </Project>

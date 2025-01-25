@@ -1,62 +1,58 @@
 ﻿using System;
-using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
+using YoutubeDLSharp;
 
 namespace MusicApplication.Services
 {
     public class YtDlpService
     {
-        private const string YtDlpPath = "/data/data/com.termux/files/usr/bin/yt-dlp"; //Alternate path : C:\\yt-dlp\\yt-dlp.exe /data/data/com.termux/files/usr/bin/yt-dlp
+        private readonly YoutubeDL youtubeDL;
+
+        public YtDlpService()
+        {
+            string ytDlpPath = GetYtDlpPath();
+            youtubeDL = new YoutubeDL
+            {
+                YoutubeDLPath = ytDlpPath
+            };
+        }
 
         public async Task<string> GetAudioStreamUrlAsync(string videoUrl)
         {
-            string arguments = $"-f bestaudio --get-url {videoUrl}";
-            string output = string.Empty;
-            string errorOutput = string.Empty;
-
             try
             {
-                var process = new Process
-                {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = YtDlpPath,
-                        Arguments = arguments,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    }
-                };
+                var result = await youtubeDL.RunVideoDataFetch(videoUrl);
 
-                process.Start();
-
-                using (var outputReader = process.StandardOutput)
-                using (var errorReader = process.StandardError)
+                if (result.Success && !string.IsNullOrEmpty(result.Data?.Url))
                 {
-                    output = await outputReader.ReadToEndAsync();
-                    errorOutput = await errorReader.ReadToEndAsync();
+                    Console.WriteLine($"Extracted URL: {result.Data.Url}");
+                    return result.Data.Url;
                 }
-
-                process.WaitForExit();
-
-                if (!string.IsNullOrEmpty(errorOutput))
+                else
                 {
-                    Console.WriteLine($"Error from yt-dlp: {errorOutput}");
-                }
-
-                if (string.IsNullOrEmpty(output.Trim()))
-                {
-                    throw new Exception("No valid stream URL found.");
+                    Console.WriteLine("yt-dlp output: " + string.Join("\n", result.ErrorOutput));
+                    throw new Exception("Failed to extract audio stream URL.");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception in GetAudioStreamUrlAsync: {ex.Message}");
-                throw; 
+                Console.WriteLine($"Error in GetAudioStreamUrlAsync: {ex.Message}");
+                throw new Exception($"Failed to fetch video data: {ex.Message}", ex);
+            }
+        }
+
+        private string GetYtDlpPath()
+        {
+            string ytDlpPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "yt-dlp.exe");
+
+            if (!File.Exists(ytDlpPath))
+            {
+                throw new FileNotFoundException($"yt-dlp binary not found at {ytDlpPath}. Ensure the binary is correctly placed.");
             }
 
-            return output.Trim();
+            return ytDlpPath;
         }
+
     }
 }
