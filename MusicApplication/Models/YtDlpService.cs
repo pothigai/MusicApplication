@@ -8,27 +8,38 @@ namespace MusicApplication.Services
     public class YtDlpService
     {
         private readonly YoutubeDL youtubeDL;
+        private static string _dir;
 
         public YtDlpService()
         {
-            string ytDlpPath = GetYtDlpPath();
+        //    string ytDlpPath = GetYtDlpPath();
             youtubeDL = new YoutubeDL
             {
-                YoutubeDLPath = ytDlpPath
+                YoutubeDLPath = Path.Combine(_dir, "yt-dlp.exe") //TODO: needs to be customized for vaious OSs, see implementation in Utils https://github.com/Bluegrams/YoutubeDLSharp/blob/b2f7968a2ef06a9c7b2c212785cfeac0b187b6d8/YoutubeDLSharp/Utils.cs#L146
             };
+
+         
+        }
+
+        public static async Task Init()
+        {
+            _dir = FileSystem.AppDataDirectory;
+            await YoutubeDLSharp.Utils.DownloadYtDlp(_dir);
+            await YoutubeDLSharp.Utils.DownloadFFmpeg(_dir);
         }
 
         public async Task<string> GetAudioStreamUrlAsync(string videoUrl)
         {
             try
             {
-                var result = await youtubeDL.RunVideoDataFetch(videoUrl);
+                RunResult<YoutubeDLSharp.Metadata.VideoData> result = await youtubeDL.RunVideoDataFetch(videoUrl);
 
-                if (result.Success && !string.IsNullOrEmpty(result.Data?.Url))
-                {
-                    Console.WriteLine($"Extracted URL: {result.Data.Url}");
-                    return result.Data.Url;
-                }
+                throw new NotImplementedException("see comments below");
+                if (result.Success && !string.IsNullOrEmpty(result.Data?.Url))// url is always empty, i think you need to look at formats/audio only fields
+                {                                                             // url is always empty, i think you need to look at formats/audio only fields
+                    Console.WriteLine($"Extracted URL: {result.Data.Url}");   // url is always empty, i think you need to look at formats/audio only fields
+                    return result.Data.Url;                                   // url is always empty, i think you need to look at formats/audio only fields
+                }                                                             // url is always empty, i think you need to look at formats/audio only fields
                 else
                 {
                     Console.WriteLine("yt-dlp output: " + string.Join("\n", result.ErrorOutput));
