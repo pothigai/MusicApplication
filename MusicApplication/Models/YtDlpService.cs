@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using YoutubeDLSharp;
@@ -8,14 +9,24 @@ namespace MusicApplication.Services
     public class YtDlpService
     {
         private readonly YoutubeDL youtubeDL;
+        private static string _dir;
 
         public YtDlpService()
         {
-            string ytDlpPath = GetYtDlpPath();
+            //    string ytDlpPath = GetYtDlpPath();
             youtubeDL = new YoutubeDL
             {
-                YoutubeDLPath = ytDlpPath
+                YoutubeDLPath = Path.Combine(_dir, "yt-dlp.exe") //TODO: needs to be customized for vaious OSs, see implementation in Utils https://github.com/Bluegrams/YoutubeDLSharp/blob/b2f7968a2ef06a9c7b2c212785cfeac0b187b6d8/YoutubeDLSharp/Utils.cs#L146
             };
+
+
+        }
+
+        public static async Task Init()
+        {
+            _dir = FileSystem.AppDataDirectory;
+            await YoutubeDLSharp.Utils.DownloadYtDlp(_dir);
+            await YoutubeDLSharp.Utils.DownloadFFmpeg(_dir);
         }
 
         public async Task<string> GetAudioStreamUrlAsync(string videoUrl)
@@ -24,23 +35,31 @@ namespace MusicApplication.Services
             {
                 var result = await youtubeDL.RunVideoDataFetch(videoUrl);
 
-                if (result.Success && !string.IsNullOrEmpty(result.Data?.Url))
+                if (result.Success && result.Data.Formats != null)
                 {
-                    Console.WriteLine($"Extracted URL: {result.Data.Url}");
-                    return result.Data.Url;
+ 
+                    var audioFormat = result.Data.Formats
+                        .Where(format => format.AudioCodec != "none" && format.VideoCodec == "none") 
+                        .OrderByDescending(format => format.AudioBitrate) 
+                        .FirstOrDefault();
+
+                    if (audioFormat != null)
+                    {
+                        Debug.WriteLine($"Extracted Audio URL: {audioFormat.Url}");
+                        return audioFormat.Url;
+                    }
                 }
-                else
-                {
-                    Console.WriteLine("yt-dlp output: " + string.Join("\n", result.ErrorOutput));
-                    throw new Exception("Failed to extract audio stream URL.");
-                }
+
+                Debug.WriteLine("No valid audio format found.");
+                throw new Exception("Failed to extract audio stream URL.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in GetAudioStreamUrlAsync: {ex.Message}");
+                Debug.WriteLine($"Error in GetAudioStreamUrlAsync: {ex.Message}");
                 throw new Exception($"Failed to fetch video data: {ex.Message}", ex);
             }
         }
+
 
         private string GetYtDlpPath()
         {

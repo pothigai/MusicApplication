@@ -5,6 +5,7 @@ using Microsoft.Maui.Controls;
 using MusicApplication.Models;
 using MediaManager;
 using MusicApplication.Services;
+using System.Diagnostics;
 
 
 namespace MusicApplication
@@ -64,8 +65,11 @@ namespace MusicApplication
 
                 try
                 {
+                    await YtDlpService.Init();
                     var ytdlp = new YtDlpService();
                     var streamUrl = await ytdlp.GetAudioStreamUrlAsync(_selectedTrack.Url);
+                    Debug.WriteLine(streamUrl);
+
 
                     if (!string.IsNullOrEmpty(streamUrl))
                     {
