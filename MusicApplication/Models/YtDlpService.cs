@@ -10,13 +10,22 @@ namespace MusicApplication.Services
     {
         private readonly YoutubeDL youtubeDL;
         private static string _dir;
+        private static string _bin;
 
         public YtDlpService()
         {
-            //    string ytDlpPath = GetYtDlpPath();
+
+            if (IsWindows())
+            {
+                _bin = "yt-dlp.exe";
+            }
+            else if (IsAndroid())
+            {
+                _bin = "yt-dlp";
+            }
             youtubeDL = new YoutubeDL
             {
-                YoutubeDLPath = Path.Combine(_dir, "yt-dlp.exe") //TODO: needs to be customized for vaious OSs, see implementation in Utils https://github.com/Bluegrams/YoutubeDLSharp/blob/b2f7968a2ef06a9c7b2c212785cfeac0b187b6d8/YoutubeDLSharp/Utils.cs#L146
+                YoutubeDLPath = Path.Combine(_dir, _bin) 
             };
 
 
@@ -37,10 +46,10 @@ namespace MusicApplication.Services
 
                 if (result.Success && result.Data.Formats != null)
                 {
- 
+
                     var audioFormat = result.Data.Formats
-                        .Where(format => format.AudioCodec != "none" && format.VideoCodec == "none") 
-                        .OrderByDescending(format => format.AudioBitrate) 
+                        .Where(format => format.AudioCodec != "none" && format.VideoCodec == "none")
+                        .OrderByDescending(format => format.AudioBitrate)
                         .FirstOrDefault();
 
                     if (audioFormat != null)
@@ -60,6 +69,15 @@ namespace MusicApplication.Services
             }
         }
 
+        private static bool IsWindows()
+        {
+            return Environment.OSVersion.Platform == PlatformID.Win32NT;
+        }
+
+        private static bool IsAndroid()
+        {
+            return Environment.OSVersion.Platform == PlatformID.Unix;
+        }
 
         private string GetYtDlpPath()
         {
