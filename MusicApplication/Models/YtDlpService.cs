@@ -14,21 +14,14 @@ namespace MusicApplication.Services
 
         public YtDlpService()
         {
+            string ytDlpFileName = OperatingSystem.IsAndroid() ? "yt-dlp" : "yt-dlp.exe";
+            string ffmpegFileName = OperatingSystem.IsAndroid() ? "ffmpeg" : "ffmpeg.exe";
 
-            if (IsWindows())
-            {
-                _bin = "yt-dlp.exe";
-            }
-            else if (IsAndroid())
-            {
-                _bin = "yt-dlp";
-            }
             youtubeDL = new YoutubeDL
             {
-                YoutubeDLPath = Path.Combine(_dir, _bin) 
+                YoutubeDLPath = Path.Combine(_dir, ytDlpFileName),
+                FFmpegPath = Path.Combine(_dir, ffmpegFileName)
             };
-
-
         }
 
         public static async Task Init()

@@ -13,7 +13,7 @@ namespace MusicApplication
         {
             var youtubeService = new YouTubeService(new BaseClientService.Initializer()
             {
-                ApiKey = "APIKEY",
+                ApiKey = "AIzaSyDlsvIcFuIzpy1ZdJK2ZlS2tIc7Bn9G9ks",
                 ApplicationName = this.GetType().ToString()
             });
 
