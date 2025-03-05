@@ -85,6 +85,7 @@ namespace MusicApplication
                 catch (Exception ex)
                 {
                     await DisplayAlert("Error", $"An error occurred while streaming the track: {ex.Message}", "OK");
+                    Debug.WriteLine(ex.ToString());
                 }
             }
         }
@@ -104,6 +105,7 @@ namespace MusicApplication
             catch (Exception ex)
             {
                 await DisplayAlert("Error", $"An error occurred while playing the track: {ex.Message}", "OK");
+                Debug.WriteLine(ex.ToString());
             }
         }
 
