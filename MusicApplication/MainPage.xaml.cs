@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
 using MusicApplication.Models;
 using MediaManager;
-using MusicApplication.Services;
-using System.Diagnostics;
-
 
 namespace MusicApplication
 {
@@ -15,6 +16,8 @@ namespace MusicApplication
         private readonly UserSearch _userSearch;
         private readonly ObservableCollection<TrackInfo> _searchResults;
         private TrackInfo _selectedTrack;
+
+        private readonly string _serverUrl = "http://192.168.2.8:8080/";
 
         public MainPage()
         {
@@ -65,47 +68,59 @@ namespace MusicApplication
 
                 try
                 {
-                    await YtDlpService.Init();
-                    var ytdlp = new YtDlpService();
-                    var streamUrl = await ytdlp.GetAudioStreamUrlAsync(_selectedTrack.Url);
-                    Debug.WriteLine(streamUrl);
-
+                    string videoId = GetVideoIdFromUrl(_selectedTrack.Url);
+                    string streamUrl = await GetStreamUrlFromServer(videoId);
 
                     if (!string.IsNullOrEmpty(streamUrl))
                     {
-                        Console.WriteLine($"Stream URL: {streamUrl}");
-
+                        Debug.WriteLine($"Stream URL: {streamUrl}");
                         await CrossMediaManager.Current.Play(streamUrl);
                     }
                     else
                     {
-                        await DisplayAlert("Error", "Unable to extract a valid stream URL from yt-dlp.", "OK");
+                        await DisplayAlert("Error", "No stream URL received from server.", "OK");
                     }
                 }
                 catch (Exception ex)
                 {
-                    await DisplayAlert("Error", $"An error occurred while streaming the track: {ex.Message}", "OK");
+                    await DisplayAlert("Error", $"Failed to get stream URL: {ex.Message}", "OK");
                     Debug.WriteLine(ex.ToString());
                 }
             }
         }
 
+        private string GetVideoIdFromUrl(string url)
+        {
+            var uri = new Uri(url);
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            return query["v"];
+        }
+
+        private async Task<string> GetStreamUrlFromServer(string videoId)
+        {
+            using var client = new HttpClient();
+            var payload = new { videoId = videoId };
+            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync(_serverUrl, content);
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<ServerResponse>(json);
+                return result?.url;
+            }
+            return null;
+        }
+
         private async void OnPlayClicked(object sender, EventArgs e)
         {
-            if (_selectedTrack == null)
-            {
-                await DisplayAlert("Error", "No track selected to play", "OK");
-                return;
-            }
-
             try
             {
                 await CrossMediaManager.Current.Play();
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Error", $"An error occurred while playing the track: {ex.Message}", "OK");
-                Debug.WriteLine(ex.ToString());
+                await DisplayAlert("Error", $"Error while playing: {ex.Message}", "OK");
             }
         }
 
@@ -117,7 +132,7 @@ namespace MusicApplication
             }
             catch (Exception ex)
             {
-                DisplayAlert("Error", $"An error occurred while pausing the track: {ex.Message}", "OK");
+                DisplayAlert("Error", $"Error while pausing: {ex.Message}", "OK");
             }
         }
 
@@ -130,8 +145,13 @@ namespace MusicApplication
             }
             catch (Exception ex)
             {
-                DisplayAlert("Error", $"An error occurred while stopping the track: {ex.Message}", "OK");
+                DisplayAlert("Error", $"Error while stopping: {ex.Message}", "OK");
             }
+        }
+
+        private class ServerResponse
+        {
+            public string url { get; set; }
         }
     }
 }

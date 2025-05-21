@@ -1,88 +1,52 @@
 ﻿using System;
-using System.Diagnostics;
-using System.IO;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
-using YoutubeDLSharp;
 
 namespace MusicApplication.Services
 {
     public class YtDlpService
     {
-        private readonly YoutubeDL youtubeDL;
-        private static string _dir;
-        private static string _bin;
+        private readonly HttpClient _httpClient;
 
         public YtDlpService()
         {
-            string ytDlpFileName = OperatingSystem.IsAndroid() ? "yt-dlp" : "yt-dlp.exe";
-            string ffmpegFileName = OperatingSystem.IsAndroid() ? "ffmpeg" : "ffmpeg.exe";
-
-            youtubeDL = new YoutubeDL
-            {
-                YoutubeDLPath = Path.Combine(_dir, ytDlpFileName),
-                FFmpegPath = Path.Combine(_dir, ffmpegFileName)
-            };
-        }
-
-        public static async Task Init()
-        {
-            _dir = FileSystem.AppDataDirectory;
-            await YoutubeDLSharp.Utils.DownloadYtDlp(_dir);
-            await YoutubeDLSharp.Utils.DownloadFFmpeg(_dir);
+            _httpClient = new HttpClient();
         }
 
         public async Task<string> GetAudioStreamUrlAsync(string videoUrl)
         {
             try
             {
-                var result = await youtubeDL.RunVideoDataFetch(videoUrl);
+               
+                var uri = new Uri(videoUrl);
+                var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+                var videoId = query["v"];
 
-                if (result.Success && result.Data.Formats != null)
+                if (string.IsNullOrEmpty(videoId))
+                    throw new Exception("Invalid YouTube URL");
+              
+                string serverUrl = "http://192.168.2.8:8080/"; 
+                var json = JsonSerializer.Serialize(new { videoId });
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync(serverUrl, content);
+                response.EnsureSuccessStatusCode();
+                var responseString = await response.Content.ReadAsStringAsync();               
+                using var doc = JsonDocument.Parse(responseString);
+
+                if (doc.RootElement.TryGetProperty("url", out var urlElement))
                 {
-
-                    var audioFormat = result.Data.Formats
-                        .Where(format => format.AudioCodec != "none" && format.VideoCodec == "none")
-                        .OrderByDescending(format => format.AudioBitrate)
-                        .FirstOrDefault();
-
-                    if (audioFormat != null)
-                    {
-                        Debug.WriteLine($"Extracted Audio URL: {audioFormat.Url}");
-                        return audioFormat.Url;
-                    }
+                    return urlElement.GetString();
                 }
 
-                Debug.WriteLine("No valid audio format found.");
-                throw new Exception("Failed to extract audio stream URL.");
+                throw new Exception("URL not found in response.");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error in GetAudioStreamUrlAsync: {ex.Message}");
-                throw new Exception($"Failed to fetch video data: {ex.Message}", ex);
+                Console.WriteLine($"Error fetching stream URL: {ex.Message}");
+                return null;
             }
         }
-
-        private static bool IsWindows()
-        {
-            return Environment.OSVersion.Platform == PlatformID.Win32NT;
-        }
-
-        private static bool IsAndroid()
-        {
-            return Environment.OSVersion.Platform == PlatformID.Unix;
-        }
-
-        private string GetYtDlpPath()
-        {
-            string ytDlpPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "yt-dlp.exe");
-
-            if (!File.Exists(ytDlpPath))
-            {
-                throw new FileNotFoundException($"yt-dlp binary not found at {ytDlpPath}. Ensure the binary is correctly placed.");
-            }
-
-            return ytDlpPath;
-        }
-
     }
 }
