@@ -83,8 +83,9 @@ namespace MusicApplication
                 }
                 catch (Exception ex)
                 {
-                    await DisplayAlert("Error", $"Failed to get stream URL: {ex.Message}", "OK");
-                    Debug.WriteLine(ex.ToString());
+                    string fullError = $"Exception Message: {ex.Message}\n\nStack Trace:\n{ex.StackTrace}";
+                    await DisplayAlert("Detailed Error", fullError, "OK");
+                    Debug.WriteLine(fullError);
                 }
             }
         }
